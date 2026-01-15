@@ -9,7 +9,6 @@ import { CREATURE_TYPES } from '../data/creatureConfig.js';
  * - GLTF model support with fallback to detailed procedural geometry
  * - PBR materials with subsurface scattering
  * - Realistic swimming animation with skeletal-like deformation
- * - Volumetric glow effects
  */
 export class WhaleController {
   constructor(scene, envMap = null) {
@@ -114,9 +113,6 @@ export class WhaleController {
       Math.sin(angle) * radius
     );
 
-    // Add volumetric glow effect
-    const glowMesh = this.createVolumetricGlow(mesh, wealthRatio);
-
     // Add underwater caustic projection on whale
     const causticMesh = this.createCausticProjection(mesh, size);
 
@@ -126,13 +122,11 @@ export class WhaleController {
     label.position.y += size * 2;
 
     this.scene.add(mesh);
-    this.scene.add(glowMesh);
     if (causticMesh) this.scene.add(causticMesh);
     this.scene.add(label);
 
     return {
       mesh,
-      glowMesh,
       causticMesh,
       label,
       billionaire,
@@ -211,11 +205,7 @@ export class WhaleController {
       clearcoatRoughness: 0.4,
 
       // Environment reflections
-      envMapIntensity: 0.5,
-
-      // Emissive glow for billionaire whales
-      emissive: new THREE.Color(0xffaa44),
-      emissiveIntensity: 0.1 + wealthRatio * 0.3
+      envMapIntensity: 0.5
     });
 
     if (this.envMap) {
@@ -225,62 +215,6 @@ export class WhaleController {
     return material;
   }
 
-  createVolumetricGlow(mesh, intensity) {
-    // Multi-layer volumetric glow for ethereal effect
-    const glowGeometry = new THREE.SphereGeometry(1.8, 24, 24);
-
-    const glowMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        uColor: { value: new THREE.Color(0xffd700) },
-        uIntensity: { value: intensity },
-        uTime: { value: 0 }
-      },
-      vertexShader: `
-        varying vec3 vNormal;
-        varying vec3 vViewPosition;
-
-        void main() {
-          vNormal = normalize(normalMatrix * normal);
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          vViewPosition = -mvPosition.xyz;
-          gl_Position = projectionMatrix * mvPosition;
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 uColor;
-        uniform float uIntensity;
-        uniform float uTime;
-
-        varying vec3 vNormal;
-        varying vec3 vViewPosition;
-
-        void main() {
-          vec3 viewDir = normalize(vViewPosition);
-          float rim = 1.0 - abs(dot(vNormal, viewDir));
-          rim = pow(rim, 2.5);
-
-          // Pulsing effect
-          float pulse = sin(uTime * 2.0) * 0.15 + 0.85;
-
-          // Color gradient from gold to white at edges
-          vec3 color = mix(uColor, vec3(1.0, 0.95, 0.8), rim * 0.5);
-
-          float alpha = rim * uIntensity * pulse * 0.6;
-          gl_FragColor = vec4(color, alpha);
-        }
-      `,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      side: THREE.BackSide,
-      depthWrite: false
-    });
-
-    const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
-    glowMesh.scale.copy(mesh.scale).multiplyScalar(1.3);
-    glowMesh.position.copy(mesh.position);
-
-    return glowMesh;
-  }
 
   createCausticProjection(mesh, size) {
     // Project animated caustics onto whale surface
@@ -380,12 +314,6 @@ export class WhaleController {
         );
       }
 
-      // Update glow position and animation
-      whale.glowMesh.position.copy(whale.mesh.position);
-      whale.glowMesh.rotation.copy(whale.mesh.rotation);
-      whale.glowMesh.scale.copy(whale.mesh.scale).multiplyScalar(1.3);
-      whale.glowMesh.material.uniforms.uTime.value = this.time;
-
       // Update label position and visibility
       whale.label.position.copy(whale.mesh.position);
       whale.label.position.y += whale.size * 1.8;
@@ -398,16 +326,6 @@ export class WhaleController {
       if (labelVisibility) {
         const opacity = Math.max(0, 1 - (distToCamera - 30) / 70);
         whale.label.material.opacity = opacity;
-      }
-
-      // Pulse glow based on wealth
-      const wealthRatio = whale.billionaire.wealth / NOTABLE_BILLIONAIRES[0].wealth;
-      const pulse = Math.sin(this.time * 1.5 + index * 0.5) * 0.1 + 0.9;
-      whale.glowMesh.material.uniforms.uIntensity.value = wealthRatio * pulse;
-
-      // Update emissive intensity on whale material
-      if (whale.mesh.material.emissiveIntensity !== undefined) {
-        whale.mesh.material.emissiveIntensity = (0.1 + wealthRatio * 0.3) * pulse;
       }
     });
   }
@@ -441,13 +359,10 @@ export class WhaleController {
     this.whales.forEach(whale => {
       whale.mesh.geometry.dispose();
       whale.mesh.material.dispose();
-      whale.glowMesh.geometry.dispose();
-      whale.glowMesh.material.dispose();
       whale.label.material.map?.dispose();
       whale.label.material.dispose();
 
       this.scene.remove(whale.mesh);
-      this.scene.remove(whale.glowMesh);
       this.scene.remove(whale.label);
     });
   }
