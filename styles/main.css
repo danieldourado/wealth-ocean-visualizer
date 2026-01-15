@@ -1,0 +1,267 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --ocean-deep: #0a1628;
+  --ocean-mid: #0d3b66;
+  --ocean-surface: #1e90ff;
+  --gold-wealth: #ffd700;
+  --silver-wealth: #c0c0c0;
+  --bronze-wealth: #cd7f32;
+  --text-glow: rgba(100, 200, 255, 0.8);
+  --panel-bg: rgba(10, 22, 40, 0.85);
+  --panel-border: rgba(100, 200, 255, 0.3);
+}
+
+/* Orbitron font loaded via Google Fonts in index.html */
+
+body {
+  font-family: 'Orbitron', 'Segoe UI', sans-serif;
+  background: var(--ocean-deep);
+  color: white;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+#ocean-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* HUD Overlay */
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Depth Meter - Left Side */
+#depth-meter {
+  position: absolute;
+  left: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.depth-label {
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--text-glow);
+  text-shadow: 0 0 10px var(--text-glow);
+}
+
+.depth-bar {
+  width: 8px;
+  height: 400px;
+  background: linear-gradient(
+    to bottom,
+    var(--gold-wealth) 0%,
+    var(--ocean-surface) 20%,
+    var(--ocean-mid) 50%,
+    var(--ocean-deep) 100%
+  );
+  border-radius: 4px;
+  position: relative;
+  box-shadow: 0 0 20px rgba(100, 200, 255, 0.3);
+}
+
+.depth-indicator {
+  position: absolute;
+  left: -8px;
+  width: 24px;
+  height: 4px;
+  background: white;
+  border-radius: 2px;
+  box-shadow: 0 0 15px white, 0 0 30px var(--text-glow);
+  transition: top 0.3s ease-out;
+  top: 50%;
+}
+
+.depth-markers {
+  position: absolute;
+  left: 15px;
+  top: 0;
+  height: 100%;
+  width: 100px;
+}
+
+.depth-value {
+  font-size: 14px;
+  color: var(--gold-wealth);
+  text-shadow: 0 0 10px var(--gold-wealth);
+}
+
+/* Info Panel - Top Right */
+#info-panel {
+  position: absolute;
+  top: 30px;
+  right: 30px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 20px 25px;
+  min-width: 280px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(100, 200, 255, 0.05);
+}
+
+.info-title {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.info-creature {
+  font-size: 24px;
+  color: var(--text-glow);
+  text-shadow: 0 0 15px var(--text-glow);
+  margin-bottom: 8px;
+}
+
+.info-wealth {
+  font-size: 16px;
+  color: var(--gold-wealth);
+  margin-bottom: 5px;
+}
+
+.info-population {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Controls Hint - Bottom */
+#controls-hint {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 25px;
+  padding: 12px 25px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+#controls-hint span {
+  color: var(--text-glow);
+  font-weight: bold;
+}
+
+/* Loading Screen */
+#loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--ocean-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  z-index: 100;
+  transition: opacity 0.5s ease-out;
+}
+
+#loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-text {
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: var(--text-glow);
+  text-shadow: 0 0 20px var(--text-glow);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.loading-bar {
+  width: 300px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.loading-progress {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ocean-surface), var(--text-glow));
+  border-radius: 2px;
+  transition: width 0.3s ease-out;
+  box-shadow: 0 0 20px var(--text-glow);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Cinematic Mode */
+.cinematic #hud {
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+}
+
+.cinematic #controls-hint {
+  opacity: 1 !important;
+}
+
+/* Wealth Zone Indicators */
+.zone-label {
+  position: absolute;
+  left: 60px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  #info-panel {
+    top: 15px;
+    right: 15px;
+    min-width: 200px;
+    padding: 15px;
+  }
+
+  #depth-meter {
+    left: 15px;
+  }
+
+  .depth-bar {
+    height: 250px;
+  }
+
+  #controls-hint {
+    font-size: 10px;
+    padding: 10px 15px;
+  }
+}

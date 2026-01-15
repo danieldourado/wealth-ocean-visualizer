@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wealth Ocean - See Your Place in the Financial Sea</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="ocean-canvas"></canvas>
+    <div id="hud">
+      <div id="depth-meter">
+        <div class="depth-label">WEALTH DEPTH</div>
+        <div class="depth-bar">
+          <div class="depth-indicator"></div>
+          <div class="depth-markers"></div>
+        </div>
+        <div class="depth-value">$0</div>
+      </div>
+      <div id="info-panel">
+        <div class="info-title">Current Zone</div>
+        <div class="info-creature"></div>
+        <div class="info-wealth"></div>
+        <div class="info-population"></div>
+      </div>
+      <div id="controls-hint">
+        <span>WASD</span> Move &nbsp;|&nbsp;
+        <span>Mouse</span> Look &nbsp;|&nbsp;
+        <span>Q/E</span> Up/Down &nbsp;|&nbsp;
+        <span>Space</span> Cinematic Mode
+      </div>
+    </div>
+    <div id="loading">
+      <div class="loading-text">Diving into the wealth ocean...</div>
+      <div class="loading-bar"><div class="loading-progress"></div></div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
