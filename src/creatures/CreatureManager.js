@@ -7,10 +7,12 @@ import { CREATURE_TYPES } from '../data/creatureConfig.js';
 /**
  * CreatureManager - Orchestrates all sea creatures based on wealth distribution
  * Spawns appropriate creatures at each depth level
+ * Now supports environment maps for PBR materials
  */
 export class CreatureManager {
-  constructor(scene) {
+  constructor(scene, envMap = null) {
     this.scene = scene;
+    this.envMap = envMap;
     this.schools = new Map();
     this.whaleController = null;
     this.time = 0;
@@ -23,14 +25,29 @@ export class CreatureManager {
     WEALTH_BRACKETS.forEach(bracket => {
       if (bracket.creature === 'whale') {
         // Whales get special treatment
-        this.whaleController = new WhaleController(this.scene);
+        this.whaleController = new WhaleController(this.scene, this.envMap);
       } else {
-        const school = new FishSchool(this.scene, bracket.creature, bracket);
+        const school = new FishSchool(this.scene, bracket.creature, bracket, this.envMap);
         this.schools.set(bracket.id, school);
       }
     });
 
     console.log(`Created ${this.schools.size} fish schools + whale controller`);
+  }
+
+  /**
+   * Set environment map for all creatures (for PBR reflections)
+   */
+  setEnvironmentMap(envMap) {
+    this.envMap = envMap;
+
+    this.schools.forEach(school => {
+      school.setEnvironmentMap(envMap);
+    });
+
+    if (this.whaleController) {
+      this.whaleController.setEnvironmentMap(envMap);
+    }
   }
 
   update(deltaTime, cameraPosition) {

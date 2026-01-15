@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Ocean } from './scene/Ocean.js';
 import { Lighting } from './scene/Lighting.js';
 import { Skybox } from './scene/Skybox.js';
+import { PostProcessing } from './scene/PostProcessing.js';
 import { CreatureManager } from './creatures/CreatureManager.js';
 import { Controls } from './ui/Controls.js';
 import { HUD } from './ui/HUD.js';
@@ -93,19 +94,25 @@ class WealthOcean {
   }
 
   createEnvironment() {
-    // Ocean (water, floor, particles)
-    this.ocean = new Ocean(this.scene, this.renderer);
+    // Lighting system (needs renderer for HDRI/PMREM)
+    this.lighting = new Lighting(this.scene, this.renderer);
 
-    // Lighting system
-    this.lighting = new Lighting(this.scene);
+    // Ocean (water, floor, particles) - needs lighting for env map
+    this.ocean = new Ocean(this.scene, this.renderer, this.lighting);
 
     // Skybox (visible near surface)
     this.skybox = new Skybox(this.scene);
+
+    // Post-processing pipeline
+    this.postProcessing = new PostProcessing(this.renderer, this.scene, this.camera);
   }
 
   createCreatures() {
+    // Get environment map from lighting system
+    const envMap = this.lighting.getEnvironmentMap();
+
     // Creature manager handles all fish schools and whales
-    this.creatureManager = new CreatureManager(this.scene);
+    this.creatureManager = new CreatureManager(this.scene, envMap);
 
     // Log stats
     const stats = this.creatureManager.getStats();
@@ -162,6 +169,11 @@ class WealthOcean {
 
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Update post-processing size
+    if (this.postProcessing) {
+      this.postProcessing.setSize(width, height);
+    }
   }
 
   onKeyDown(event) {
@@ -218,6 +230,25 @@ class WealthOcean {
         // Go to bottom (poverty)
         this.controls.moveTo(new THREE.Vector3(0, -190, 80), 3);
         break;
+
+      case 'KeyP':
+        // Toggle post-processing
+        this.postProcessing.setEnabled(!this.postProcessing.enabled);
+        this.hud.showMessage(
+          `Post-processing: ${this.postProcessing.enabled ? 'ON' : 'OFF'}`,
+          2000
+        );
+        break;
+
+      case 'KeyF':
+        // Toggle depth of field
+        const dofEnabled = !this.postProcessing.bokehPass.enabled;
+        this.postProcessing.setDepthOfField(dofEnabled);
+        this.hud.showMessage(
+          `Depth of Field: ${dofEnabled ? 'ON' : 'OFF'}`,
+          2000
+        );
+        break;
     }
   }
 
@@ -226,11 +257,15 @@ class WealthOcean {
     document.body.classList.add('cinematic');
     this.hud.setVisible(false);
 
+    // Enable cinematic post-processing
+    this.postProcessing.setCinematicMode(true);
+
     // Play "The Dive" by default
     this.cameraPath.play('theDive', () => {
       this.cinematicMode = false;
       document.body.classList.remove('cinematic');
       this.hud.setVisible(true);
+      this.postProcessing.setCinematicMode(false);
     });
 
     this.hud.showMessage('Cinematic Mode - Press Space to exit', 3000);
@@ -241,10 +276,14 @@ class WealthOcean {
     document.body.classList.add('cinematic');
     this.hud.setVisible(false);
 
+    // Enable cinematic post-processing
+    this.postProcessing.setCinematicMode(true);
+
     this.cameraPath.play(pathName, () => {
       this.cinematicMode = false;
       document.body.classList.remove('cinematic');
       this.hud.setVisible(true);
+      this.postProcessing.setCinematicMode(false);
     });
 
     const path = this.cameraPath.paths[pathName];
@@ -271,6 +310,7 @@ class WealthOcean {
 
     // Update environment
     this.ocean.update(deltaTime, cameraY);
+    this.ocean.updateCameraPosition(cameraPos);
     this.lighting.update(deltaTime, cameraY, this.time);
     this.skybox.update(cameraY, this.time);
 
@@ -283,8 +323,11 @@ class WealthOcean {
     this.hud.update(cameraY, nearbyCreatures);
     this.depthMeter.update(cameraY);
 
-    // Render
-    this.renderer.render(this.scene, this.camera);
+    // Update post-processing
+    this.postProcessing.update(deltaTime, cameraY);
+
+    // Render with post-processing
+    this.postProcessing.render();
   }
 
   dispose() {
@@ -294,6 +337,7 @@ class WealthOcean {
     this.creatureManager.dispose();
     this.controls.dispose();
     this.depthMeter.dispose();
+    this.postProcessing.dispose();
 
     this.renderer.dispose();
   }
@@ -318,7 +362,7 @@ window.cinematics = {
 
 console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║           WEALTH OCEAN VISUALIZER                           ║
+║        WEALTH OCEAN VISUALIZER - PHOTOREALISTIC             ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  Controls:                                                   ║
 ║    WASD     - Move                                          ║
@@ -330,6 +374,8 @@ console.log(`
 ║    R        - Reset position                                ║
 ║    T        - Go to top (billionaires)                      ║
 ║    B        - Go to bottom (poverty)                        ║
+║    P        - Toggle post-processing                        ║
+║    F        - Toggle depth of field                         ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  Cinematics (also via console: cinematics.dive(), etc):     ║
 ║    1 - The Dive       4 - Scale Comparison                  ║
